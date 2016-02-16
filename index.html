@@ -6,73 +6,73 @@
     <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/angularjs/1.5.0/angular.min.js"></script>
     <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.8.3/underscore-min.js"></script>
     <script type="text/javascript">
-      window.ourapp = {
+      window.app = {
         successRate: 0.7,
+        results: [],
         offline: false,
-        results: []
-      };
 
-      function _failure(record) {
-        ourapp.results.push({saved: false, record: record, at: Date()});
-      }
+        saveRecord: function(record) {
+          if(this.offline || Math.random() >= this.successRate) {
+            this._failure(record);
+            return false;
+          } else {
+            this._success(record);
+            return true;
+          }
+        },
 
-      function _success(record) {
-        ourapp.results.push({saved: true, record: record, at: Date()});
-      }
+        toggleOffline: function() {
+          this.offline = !this.offline;
+          var $status = $('#status');
 
-      function saveRecord(record) {
-        if(ourapp.offline || Math.random() >= ourapp.successRate) {
-          _failure(record);
-          return false;
-        } else {
-          _success(record);
-          return true;
+          if(this.offline) {
+            $status.addClass('label-danger').removeClass('label-success').text('Offline');
+          } else {
+            $status.removeClass('label-danger').addClass('label-success').text('Online');
+          }
+        },
+
+        updateRecordCount: function(){
+          var recordCount = this._recordStateCount();
+
+          $('#saved-count').text(recordCount.saved || '0');
+          $('#queued-count').text(recordCount.queued || '0');
+        },
+
+        processQueue: function() {
+          if(!app.offline) {
+            var queued = _.where(this.results, {saved: false});
+            var saved  = _.where(this.results, {saved: true});
+
+            this.results = saved;
+
+            _.each(queued, function(record){
+              app.saveRecord(record.record);
+            });
+          }
+        },
+
+        _failure: function(record) {
+          this.results.push({saved: false, record: record, at: Date()});
+        },
+
+        _success: function(record) {
+          this.results.push({saved: true, record: record, at: Date()});
+        },
+
+        _recordStateCount: function() {
+          return _.countBy(this.results, function(record) {
+            return record.saved ? 'saved' : 'queued';
+          });
         }
-      }
-
-      function recordStateCount() {
-        return _.countBy(ourapp.results, function(record) {
-          return record.saved ? 'saved' : 'queued';
-        })
-      }
-
-      function toggleOffline() {
-        ourapp.offline = !ourapp.offline;
-        $status = $('#status');
-
-        if(ourapp.offline) {
-          $status.addClass('label-danger').removeClass('label-success').text('Offline');
-        } else {
-          $status.removeClass('label-danger').addClass('label-success').text('Online');
-        }
-      }
-
-      function updateRecordCount() {
-        var recordCount = recordStateCount();
-
-        $('#saved-count').text(recordCount.saved || '0');
-        $('#queued-count').text(recordCount.queued || '0');
-      }
-
-      function processQueue() {
-        var queued = _.where(ourapp.results, {saved: false});
-        var saved  = _.where(ourapp.results, {saved: true});
-
-        ourapp.results = saved;
-
-        _.each(queued, function(record){
-          saveRecord(record.record);
-        });
       }
 
       setInterval(function(){
-        updateRecordCount();
+        app.updateRecordCount();
       }, 100);
 
       setInterval(function(){
-        if(!ourapp.offline) {
-          processQueue();
-        }
+        app.processQueue();
       },5000)
 
       //
@@ -82,29 +82,44 @@
         .controller('ExampleController', ['$scope', function($scope) {
           $scope.master = {};
 
-          $scope.save = function(user) {
-            saveRecord(user)
+          $scope.save = function(record) {
+            app.saveRecord(record)
           };
         }]);
     </script>
   </head>
   <body ng-app="formExample">
+    <br>
     <div class="container">
       <div class="row">
-        <div class="col-md-12">
-          <br>
-          <div ng-controller="ExampleController">
-            <form novalidate class="simple-form">
-              <div class="form-group">
-                <label>Name</label>
-                <input type="text" ng-model="user.name" class="form-control"/>
-              </div>
-              <div class="form-group">
-                <label>Email</label>
-                <input type="email" ng-model="user.email" class="form-control" />
-              </div>
-              <button type="submit" ng-click="save(user)" value="Save" class="btn btn-primary">Save</button>
-            </form>
+        <div class="col-md-6">
+          <div class="well">
+            <div ng-controller="ExampleController">
+              <form novalidate class="simple-form">
+                <div class="form-group">
+                  <label>Country</label>
+                  <input type="email" ng-model="record.country" class="form-control" />
+                </div>
+                <button type="submit" ng-click="save(record)" value="Save" class="btn btn-primary">Save</button>
+              </form>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <div class="well">
+            <div ng-controller="ExampleController">
+              <form novalidate class="simple-form">
+                <div class="form-group">
+                  <label>Name</label>
+                  <input type="text" ng-model="record.name" class="form-control"/>
+                </div>
+                <div class="form-group">
+                  <label>Email</label>
+                  <input type="email" ng-model="record.email" class="form-control" />
+                </div>
+                <button type="submit" ng-click="save(record)" value="Save" class="btn btn-primary">Save</button>
+              </form>
+            </div>
           </div>
         </div>
       </div>
@@ -119,7 +134,7 @@
             <span id="status" class="label label-success">Online</span>
           </h1>
           <br>
-          <button onclick="toggleOffline()" class="btn btn-default">Toggle Offline</button>
+          <button onclick="app.toggleOffline()" class="btn btn-default">Toggle Offline</button>
         </div>
         <div class="col-md-6">
           <h1>
