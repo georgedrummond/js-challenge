@@ -2,77 +2,18 @@
   <head>
     <title>BuildingBlok JS Challenge</title>
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css" media="screen" title="no title" charset="utf-8">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jasmine/2.4.1/jasmine.min.css" media="screen" title="no title" charset="utf-8">
     <script type="text/javascript" src="https://code.jquery.com/jquery-2.2.0.min.js"></script>
     <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/angularjs/1.5.0/angular.min.js"></script>
     <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.8.3/underscore-min.js"></script>
+    <script type="text/javascript" src="src/cache_queue.js"></script>
     <script type="text/javascript">
-      window.app = {
-        successRate: 0.7,
-        results: [],
-        offline: false,
-
-        saveRecord: function(record) {
-          if(this.offline || Math.random() >= this.successRate) {
-            this._failure(record);
-            return false;
-          } else {
-            this._success(record);
-            return true;
-          }
-        },
-
-        toggleOffline: function() {
-          this.offline = !this.offline;
-          var $status = $('#status');
-
-          if(this.offline) {
-            $status.addClass('label-danger').removeClass('label-success').text('Offline');
-          } else {
-            $status.removeClass('label-danger').addClass('label-success').text('Online');
-          }
-        },
-
-        updateRecordCount: function(){
-          var recordCount = this._recordStateCount();
-
-          $('#saved-count').text(recordCount.saved || '0');
-          $('#queued-count').text(recordCount.queued || '0');
-        },
-
-        processQueue: function() {
-          if(!app.offline) {
-            var queued = _.where(this.results, {saved: false});
-            var saved  = _.where(this.results, {saved: true});
-
-            this.results = saved;
-
-            _.each(queued, function(record){
-              app.saveRecord(record.record);
-            });
-          }
-        },
-
-        _failure: function(record) {
-          this.results.push({saved: false, record: record, at: Date()});
-        },
-
-        _success: function(record) {
-          this.results.push({saved: true, record: record, at: Date()});
-        },
-
-        _recordStateCount: function() {
-          return _.countBy(this.results, function(record) {
-            return record.saved ? 'saved' : 'queued';
-          });
-        }
-      }
-
       setInterval(function(){
-        app.updateRecordCount();
+        cacheQueue.updateRecordCount();
       }, 100);
 
       setInterval(function(){
-        app.processQueue();
+        cacheQueue.processQueue();
       },5000)
 
       //
@@ -83,7 +24,7 @@
           $scope.master = {};
 
           $scope.save = function(record) {
-            app.saveRecord(record)
+            cacheQueue.saveRecord(record)
           };
         }]);
     </script>
@@ -134,7 +75,7 @@
             <span id="status" class="label label-success">Online</span>
           </h1>
           <br>
-          <button onclick="app.toggleOffline()" class="btn btn-default">Toggle Offline</button>
+          <button onclick="cacheQueue.toggleOffline()" class="btn btn-default">Toggle Offline</button>
         </div>
         <div class="col-md-6">
           <h1>
@@ -144,6 +85,14 @@
           <h1>
             Queued:
             <span id="queued-count">-</span>
+          </p>
+        </div>
+      </div>
+      <hr>
+      <div class="row">
+        <div class="col-md-12">
+          <p>
+            <a href="SpecRunner.html">Jasmine Specs</a>
           </p>
         </div>
       </div>
